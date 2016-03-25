@@ -1,0 +1,390 @@
+/*
+ ===========================================================================================
+Dynamic Memory by Silvia Rodriguez
+pointers / linked lists / reading and writing / argv and argc / avl balanced binary trees
+ ===========================================================================================
+ */
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+
+/* Creates struct for  AVL self-balancing tree node */
+/* Struct contains the two child nodes (left and right) which define the parent node as part of the binary tree */
+struct node
+{
+    int StudentID;              // going to use my StudentID as my key
+    char StudentName[30];       // declares array of 30 student names
+    struct node *left;          // 1st child node: left node for when values to be inserted are smaller than the key value of the current node
+    struct node *right;         // 2nd child node: right node for when values to be inserted are equal or greater than the key value of the current node
+    int height;                 // integer variable used to store value of height of tree
+};
+ 
+ 
+/* Function to get height of the tree */
+int height(struct node *N)
+{
+    if (N == NULL)
+        return 0;
+    return N->height;
+}
+ 
+/* Function to get maximum of two integers */
+int max(int a, int b)
+{
+    return (a > b)? a : b;
+}
+ 
+/* Function that allocates a new node with the given key (StudentID) and NULL left and right pointers. */
+struct node* newNode(int StudentID, char *StudentName)
+{
+    struct node* node = (struct node*)malloc(sizeof(struct node));   // allocates memory for node and then returns pointer to the block of memory allocated
+    node->StudentID   = StudentID;                                   // stores Student ID value into temporary node
+    strcpy(StudentName, node-> StudentName);                         // stores StudentName value into temporary node
+    node->left   = NULL;                                             // initialises left child node to null
+    node->right  = NULL;                                             // initialises right child node to null
+    node->height = 1;                                                // new node is initially added as root node
+    return(node);
+}
+ 
+/* Function to right rotate subtree rooted with y */
+struct node *rightRotate(struct node *y)
+{
+    struct node *x = y->left;
+    struct node *T2 = x->right;
+ 
+    // Perform rotation
+    x->right = y;
+    y->left = T2;
+ 
+    // Update heights
+    y->height = max(height(y->left), height(y->right))+1;
+    x->height = max(height(x->left), height(x->right))+1;
+ 
+    // Return new root
+    return x;
+}
+ 
+/* A utility function to left rotate subtree rooted with x */
+struct node *leftRotate(struct node *x)
+{
+    struct node *y = x->right;
+    struct node *T2 = y->left;
+ 
+    // Perform rotation
+    y->left = x;
+    x->right = T2;
+ 
+    //  Update heights
+    x->height = max(height(x->left), height(x->right))+1;
+    y->height = max(height(y->left), height(y->right))+1;
+ 
+    // Return new root
+    return y;
+}
+ 
+/* Function to get Balance factor of node N */
+int getBalance(struct node *N)
+{
+    if (N == NULL)
+        return 0;
+    return height(N->left) - height(N->right);
+}
+ 
+/* Insert function to insert a new student */
+struct node* insert(struct node* node, int StudentID, char *Name)
+{
+    /* 1.  Perform binary tree rotation */
+    if (node == NULL)
+        return(newNode(StudentID, Name));
+ 
+    if (StudentID < node->StudentID)                            // if StudentID is smaller than the key value at the node
+        node->left  = insert(node->left, StudentID, Name);      // call insert function recursively while there is non-NULL left node, passing the address of left child, StudentID and Name as arguments
+    else
+        node->right = insert(node->right, StudentID, Name);     // call insert function recursively while there is non-NULL right node, passing the address of right child, StudentID and Name as arguments
+ 
+    /* 2. Update height of this ancestor node */
+    node->height = max(height(node->left), height(node->right)) + 1;
+ 
+    /* 3. Get the balance factor of this ancestor node to check whether this node became unbalanced */
+    int balance = getBalance(node);
+ 
+    // If this node becomes unbalanced, then there are 4 cases
+ 
+    // Left Left Case
+    if (balance > 1 && StudentID < node->left->StudentID)
+        return rightRotate(node);
+ 
+    // Right Right Case
+    if (balance < -1 && StudentID > node->right->StudentID)
+        return leftRotate(node);
+ 
+    // Left Right Case
+    if (balance > 1 && StudentID > node->left->StudentID)
+    {
+        node->left =  leftRotate(node->left);
+        return rightRotate(node);
+    }
+ 
+    // Right Left Case
+    if (balance < -1 && StudentID < node->right->StudentID)
+    {
+        node->right = rightRotate(node->right);
+        return leftRotate(node);
+    }
+ 
+    /* return the (unchanged) node pointer */
+    return node;
+}
+ 
+/* Function to print the whole tree in order. */
+
+void printall(struct node *root)
+{
+    if(root != NULL)
+    {
+        printall(root->left);                   // calls printall function recursively while there is non-NULL left node
+        printf("%d\n", root->StudentID);        // displays value of root node
+        printall(root->right);                  // calls printall function recursively while there is non-NULL right node
+    }
+}
+struct node * minValueNode(struct node* node)
+{
+    struct node* current = node;
+ 
+    /* loop down to find the leftmost leaf */
+    while (current->left != NULL)
+        current = current->left;
+ 
+    return current;
+}
+
+/*Function for searching the location of the node*/
+// Return node (true) if item is one of the items in the binary tree. Return NULL (false) if not.
+struct node* search(struct node *node,int StudentID)
+{
+    if (node == NULL)                             // checks if tree is empty (if it contains any item)
+    {
+        return NULL;                              // so return NULL
+    }
+    else if (node->StudentID == StudentID)        // detects that a StudentID has been found in the root node
+    {
+        return node;                              // so return node
+    }
+    else if (StudentID<node->StudentID)           // if the StudentID is smaller than the key StudentID value,
+    {
+        return search(node->left, StudentID);     // it must be in the left subtree.
+    }
+    else 
+    {    
+        return search(node->right, StudentID);    // otherwise it's bigger or equal so it should be in the right subtree
+    }
+}
+
+/* Function that searches for a stuent with StudentID key and then prints it (if found) */
+void printIndividual(struct node *root, int StudentID)
+{
+    struct node *save = search(root, StudentID);    // calls search function to look for node
+    if (save == NULL)                               // return NULL (false) is the address that the pointer *save points to doesn't exist
+    {
+        printf("Student could not be found\n");
+    }
+    else
+    {
+        printf("Student Number\tStudent Name\n");
+        printf("%10d\t%s\n", save->StudentID, save->StudentName);
+    }
+}
+/*Function which deletes a node from binary tree. It takes pointer to root node and the data to be deleted as arguments and function returns pointer to root node.*/
+struct node* deleteNode(struct node* root, int StudentID)
+{
+    // 1. Apply delete function for normal binary tree
+ 
+    if (root == NULL)
+        return root;
+ 
+    if ( StudentID < root->StudentID )                      // if the StudentID to be deleted is smaller than the root's key, then it lies in left subtree
+        root->left = deleteNode(root->left, StudentID);
+ 
+    else if( StudentID > root->StudentID )                  // if the StudentID to be deleted is greater than the root's key, then it lies in right subtree
+        root->right = deleteNode(root->right, StudentID);
+ 
+    // If StudentID is same as root's key (StudentID), then THIS is the node to be deleted:
+    else
+    {
+        // node with only one child or no child
+        if( (root->left == NULL) || (root->right == NULL) )
+        {
+            struct node *temp = root->left ? root->left : root->right;
+ 
+            // No child case
+            if(temp == NULL)
+            {
+                temp = root;
+                root = NULL;
+            }
+            else // One child case
+             *root = *temp; // Copy the contents of the non-empty child
+ 
+            free(temp);
+        }
+        else
+        {
+            // node with two children: Get the inorder successor (smallest in the right subtree)
+            struct node* temp = minValueNode(root->right);
+ 
+            // Copy the inorder successor's data to this node
+            root->StudentID = temp->StudentID;
+ 
+            // Delete the inorder successor
+            root->right = deleteNode(root->right, temp->StudentID);
+        }
+    }
+ 
+    // If the tree had only one node then return
+    if (root == NULL)
+      return root;
+ 
+    // 2. Update height of current node
+    root->height = max(height(root->left), height(root->right)) + 1;
+ 
+    // 3. Get the balance factor of this node (to check whether this node became unbalanced)
+    int balance = getBalance(root);
+ 
+    // If this node becomes unbalanced, then there are 4 cases
+ 
+    // Left Left Case
+    if (balance > 1 && getBalance(root->left) >= 0)
+        return rightRotate(root);
+ 
+    // Left Right Case
+    if (balance > 1 && getBalance(root->left) < 0)
+    {
+        root->left =  leftRotate(root->left);
+        return rightRotate(root);
+    }
+ 
+    // Right Right Case
+    if (balance < -1 && getBalance(root->right) <= 0)
+        return leftRotate(root);
+ 
+    // Right Left Case
+    if (balance < -1 && getBalance(root->right) > 0)
+    {
+        root->right = rightRotate(root->right);
+        return leftRotate(root);
+    }
+ 
+    return root;
+}
+
+
+/*Recursively save file by printing the StudentID and StudentName*/
+void save(struct node *root, FILE *fp)
+{
+    if (root != NULL)
+    {
+        if(root->left)
+            save(root->left, fp);
+            printf("%d,%s\n", root->StudentID, root->StudentName);
+        if(root->right)
+            save(root->right, fp);
+    }
+}
+
+/* Opens the file to save into, and prints the header.*/
+void saveFile(struct node *root, const char *fileName)
+{
+    FILE *fp;                       //Opens the file in write only mode.
+    fp = fopen(fileName, "w");
+    save(root, fp);
+    fclose(fp);
+}
+
+/*Function that retrieves the file specified by fileName. */
+void retrieve(struct node *root, const char *fileName)
+{
+    FILE *fp;
+    long studentNumber;
+    char *studentNumberChar;
+    char str[40];
+    char *name;
+
+    fp = fopen(fileName, "r");          // Opens the file in read only mode
+
+    fgets(str, 40, fp);                 // Searches through the file, inserting the read data into the database
+
+    while(fgets(str, 40, fp))
+    {
+        studentNumberChar = strtok(str, ",");   //Reads up to the first comma, and assigns that to studentNumberChar.
+        name = strtok(NULL, ",");               // Reads from the comma to the newline character and assigns that to name.
+        studentNumber = strtol(studentNumberChar, NULL, 10);
+        insert(root, (int)studentNumber, name);
+    }
+
+    fclose(fp);
+}
+
+void main(int argc, char const *argv[])  // argc and argv are arguments to the main program used in the save and retrieve functions 
+                                         // it allows the user to specify name values from before the program starts (similar to gcc)
+{
+    int StudentID, a;
+    char StudentName[30];  
+    struct node *node;
+    struct node *root = NULL;           // creates an empty tree
+    
+    do                                  // do - while loop to recall main menu every time one of the switch cases is finished (unil case 7 is selected)
+    {
+        printf("Select the desired option:\n1.Introduce new student\n2.Remove existing student\n3.Print student report\n4.Print reports of all students\n5.Save report of student to file\n6.Retrieve student report from file\n7:Exit\n"); // shows main menu for the user to select options from
+        scanf("%d",&a);              // scans integer between 1 and 4 from menu for which each corresponds to a switch case
+
+        switch(a)                    //switch that intakes the previously inputed value of a and then selects that case
+        {
+            case 1:                 
+             /* Introduces new student */
+                printf("Enter Student's Name\n");         
+                scanf("%s", StudentName);
+                printf("Enter Student's ID Number\n");         
+                scanf("%d", &StudentID);
+                root = insert (root, StudentID, StudentName);               // calls insert function and uses root, StudentID and StudentName as arguments                              
+                break;                                                      // breaks the case and returns to main menu
+
+
+            case 2:               
+            /* Deletes students by student ID */
+                printf("Enter Student's ID of person to be deleted\n");
+                scanf("%d", &StudentID);
+                root = deleteNode(root, StudentID);                         // calls insert function and uses root, StudentID and StudentName as arguments
+                break;                                                      // breaks the case and returns to main menu
+
+
+            case 3:         
+            /*one node of tree */
+                {
+                    printf("Type the Student ID of the student record you want to print \n");
+                    scanf("%d", &StudentID);
+                    printIndividual(root, StudentID);
+                }        
+                break;
+            
+            case 4:
+            /*Prints tree*/
+            printf("Student Number\tName\n");
+            printall(root);
+            break;
+                      
+            case 5:
+            saveFile(root, argv[1]);
+            break;
+
+            case 6:
+            retrieve(root, argv[1]);
+            break;
+
+            case 7:
+            default:
+                    break;
+        }                
+    } while(a!=7);    
+}
+/*  END OF PROGRAM  */
